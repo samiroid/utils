@@ -1,5 +1,6 @@
 import re
 import twokenize
+import numpy as np
 
 def colstr(string, color, best):
     # set_trace()
@@ -42,11 +43,9 @@ def max_reps(sentence, n=3):
 def word_2_idx(msgs,zero_for_padd=False):
     """
         Compute a dictionary index mapping words into indices
-    """    
-    
+    """        
     words = set([w for m in msgs for w in m.split()])
-    if zero_for_padd:
-        words = ['_pad_'] + list(words)	    
+    if zero_for_padd: words = ['_pad_'] + list(words)               
     wrd2idx = {w:i for i,w in enumerate(words)}
     return wrd2idx
 
@@ -60,3 +59,21 @@ def preprocess(m):
     m = re.sub(twokenize.url," url ",m,flags=re.I)
     m = ' '.join(twokenize.tokenize(m)).strip()
     return m
+
+def kfolds(n_folds,n_elements,shuffle=False):    
+    rng=np.random.RandomState(1234)        
+    X = np.arange(n_elements)
+    if shuffle: rng.shuffle(X)    
+    X = X.tolist()
+    slice_size = n_elements/n_folds
+    slices =  [X[j*slice_size:(j+1)*slice_size] for j in xrange(n_folds)]
+    #append the remaining elements to the last slice
+    slices[-1] += X[n_folds*slice_size:]
+    kf = []
+    for i in xrange(len(slices)):
+        train = slices[:]
+        test = train.pop(i)
+        #flatten the list of lists
+        train = [item for sublist in train for item in sublist]
+        kf.append([train,test])
+    return kf
