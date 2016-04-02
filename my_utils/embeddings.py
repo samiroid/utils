@@ -34,10 +34,10 @@ def save_embeddings_txt(path_in, path_out, wrd2idx):
             _, emb_size = fid.readline().split()        
             fod.write(str(voc_size)+"\t"+str(emb_size)+"\n")
             for line in fid.readlines():
-                items = line.decode("utf-8").split()
+                items = line.split()
                 wrd   = items[0]
                 if wrd in wrd2idx:
-                    fod.write(line.encode("utf-8"))
+                    fod.write(line)
  
 def embeddings_to_dict(path):
     """
