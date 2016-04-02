@@ -22,7 +22,7 @@ def get_embeddings(path, wrd2idx):
            % (n_OOEV, len(wrd2idx), perc)) 
     return E
 
-def filter_embeddings(path_in, path_out, wrd2idx):
+def save_embeddings_txt(path_in, path_out, wrd2idx):
 
     """
         Filter embeddings file to contain only the relevant set
@@ -38,4 +38,15 @@ def filter_embeddings(path_in, path_out, wrd2idx):
                 wrd   = items[0]
                 if wrd in wrd2idx:
                     fod.write(line.encode("utf-8"))
-    
+ 
+def embeddings_to_dict(path):
+    """
+        Read word embeddings into a dictionary
+    """
+    w2v = {}
+    with open(path,"r") as fid:
+        fid.readline()        
+        for line in fid:
+            entry = line.split()
+            w2v[entry[0]] = np.array(entry[1:]).astype('float32')
+    return w2v   
