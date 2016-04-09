@@ -28,6 +28,8 @@ def save_embeddings_txt(path_in, path_out, wrd2idx):
         Filter embeddings file to contain only the relevant set
         of words (so that it can be loaded faster)
     """
+    
+    all_words = wrd2idx.copy()
     with open(path_out,"w") as fod:
         with open(path_in,"r") as fid:
             voc_size = len(wrd2idx)
@@ -37,8 +39,13 @@ def save_embeddings_txt(path_in, path_out, wrd2idx):
                 items = line.split()
                 wrd   = items[0]
                 if wrd in wrd2idx:
+                    del all_words[wrd]
                     fod.write(line)
- 
+
+    perc = len(all_words)*100./len(wrd2idx)
+    print ("%d/%d (%2.2f %%) words in vocabulary found no embedding" 
+           % (len(all_words), len(wrd2idx), perc)) 
+            
 def embeddings_to_dict(path):
     """
         Read word embeddings into a dictionary
