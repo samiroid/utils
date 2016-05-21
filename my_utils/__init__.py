@@ -2,11 +2,6 @@ import re
 import twokenize
 import numpy as np
 rng=np.random.RandomState(1234)      
-
-def accuracy(Y, Y_hat):
-  assert Y.shape == Y_hat.shape
-  z = np.nonzero(Y - Y_hat == 0)[0]
-  return len(z)*1.0/len(Y_hat)
   
 def colstr(string, color, best):
     # set_trace()

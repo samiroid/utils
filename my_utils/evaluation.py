@@ -1,5 +1,11 @@
 import numpy as np
 
+def accuracy(Y, Y_hat):
+  assert Y.shape == Y_hat.shape
+  z = np.nonzero(Y - Y_hat == 0)[0]
+  return len(z)*1.0/len(Y_hat)
+
+
 def get_confusionMatrix(pred, gold):
     # Confusion Matrix
     # This assumes the order (neut-sent, pos-sent, neg-sent)
@@ -35,6 +41,39 @@ def FmesSemEval(pred, gold, pos_ind, neg_ind):
     FmesNegSent = Fmeasure(tp, fp, fn)
  
     return (FmesPosSent + FmesNegSent)/2
+
+def AvgFmes(pred, gold):
+    # This assumes the order
+    confusionMatrix = get_confusionMatrix(pred, gold)
+    
+    # True positives
+    tp = confusionMatrix[0, 0]
+    # False postives
+    fp = confusionMatrix[:, 0].sum() - tp
+    # False negatives
+    fn = confusionMatrix[0, :].sum() - tp
+    # Fmeasure binary
+    FmesPos = Fmeasure(tp, fp, fn)
+
+    # True positives 
+    tp = confusionMatrix[1, 1]
+    # False postives pos-sent
+    fp = confusionMatrix[:, 1].sum() - tp
+    # False engatives pos-sent
+    fn = confusionMatrix[1, :].sum() - tp
+    # Fmeasure binary
+    FmesNeu = Fmeasure(tp, fp, fn)
+
+    # True positives 
+    tp = confusionMatrix[2, 2]
+    # False postives pos-sent
+    fp = confusionMatrix[:, 2].sum() - tp
+    # False engatives pos-sent
+    fn = confusionMatrix[2, :].sum() - tp
+    # Fmeasure binary
+    FmesNeg = Fmeasure(tp, fp, fn)
+ 
+    return (FmesPos + FmesNeu + FmesNeg) / 3
 
 def Fmeasure(tp, fp, fn):
     # Precision

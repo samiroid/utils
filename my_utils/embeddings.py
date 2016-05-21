@@ -1,5 +1,17 @@
 import numpy as np
 
+def read_embeddings(path):
+
+    w2v = embeddings_to_dict(path)    
+    emb_size = w2v.values()[0].shape[0]
+    n_items  = len(w2v) 
+    E = np.zeros((emb_size, n_items))
+    wrd2idx = {w:i for i,w in enumerate(w2v.keys())}
+    for w,i in wrd2idx.items():
+        E[:,i] = w2v[w]
+    
+    return E, wrd2idx
+
 def get_embeddings(path, wrd2idx):
 
     """
