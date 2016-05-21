@@ -61,7 +61,10 @@ def preprocess(m):
     m = ' '.join(twokenize.tokenize(m)).strip()
     return m
 
-def kfolds(n_folds,n_elements,shuffle=False):        
+def kfolds(n_folds,n_elements,val_set=False,shuffle=False):        
+    if val_set:
+        assert n_folds>2
+
     X = np.arange(n_elements)
     if shuffle: rng.shuffle(X)    
     X = X.tolist()
@@ -72,8 +75,35 @@ def kfolds(n_folds,n_elements,shuffle=False):
     kf = []
     for i in xrange(len(slices)):
         train = slices[:]
+        # from pdb import set_trace; set_trace()
+        print i
         test = train.pop(i)
-        #flatten the list of lists
-        train = [item for sublist in train for item in sublist]
-        kf.append([train,test])
+        if val_set:
+            try:
+                val = train.pop(i)
+            except IndexError:
+                val = train.pop(-1)                
+            #flatten the list of lists
+            train = [item for sublist in train for item in sublist]
+            kf.append([train,test,val])
+        else:
+            train = [item for sublist in train for item in sublist]
+            kf.append([train,test])
     return kf
+
+# def kfolds(n_folds,n_elements,shuffle=False):        
+#     X = np.arange(n_elements)
+#     if shuffle: rng.shuffle(X)    
+#     X = X.tolist()
+#     slice_size = n_elements/n_folds
+#     slices =  [X[j*slice_size:(j+1)*slice_size] for j in xrange(n_folds)]
+#     #append the remaining elements to the last slice
+#     slices[-1] += X[n_folds*slice_size:]
+#     kf = []
+#     for i in xrange(len(slices)):
+#         train = slices[:]
+#         test = train.pop(i)
+#         #flatten the list of lists
+#         train = [item for sublist in train for item in sublist]
+#         kf.append([train,test])
+#     return kf
