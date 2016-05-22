@@ -1,7 +1,64 @@
 import re
 import twokenize
 import numpy as np
+from collections import Counter
+
 rng=np.random.RandomState(1234)      
+
+# emoticon regex taken from Christopher Potts' script at http://sentiment.christopherpotts.net/tokenizing.html
+emoticon_regex = r"""(?:[<>]?[:;=8][\-o\*\']?[\)\]\(\[dDpP/\:\}\{@\|\\]|[\)\]\(\[dDpP/\:\}\{@\|\\][\-o\*\']?[:;=8][<>]?)"""
+
+def count_emoticon_polarity(message):
+    """
+        returns the number of positive, neutral and negative emoticons in message
+    """
+    emoticon_list = re.findall(emoticon_regex, message)
+    polarity_list = []
+    for emoticon in emoticon_list:
+        if emoticon in ['8:', '::', 'p:']:
+            continue # these are false positives: '8:48', 'http:', etc
+        polarity = emoticon_polarity(emoticon)
+        polarity_list.append(polarity)          
+    emoticons = Counter(polarity_list)
+    pos = emoticons[1]
+    neu = emoticons[0]
+    neg = emoticons[-1]
+    
+    return pos,neu,neg
+
+def remove_emoticons(message):
+    return re.sub(emoticon_regex,'',message)
+
+def emoticon_polarity(emoticon):
+    
+    eyes_symbol = re.findall(r'[:;=8]', emoticon) # find eyes position    
+    #if valid eyes are not found return 0
+    if len(eyes_symbol) == 1:
+        eyes_symbol = eyes_symbol[0]    
+    else:
+        return 0
+    mouth_symbol = re.findall(r'[\)\]\(\[dDcCpP/\}\{@\|\\]', emoticon) # find mouth position    
+    #if a valid mouth is not found return 0
+    if len(mouth_symbol) == 1:
+        mouth_symbol = mouth_symbol[0]
+    else:
+        return 0
+    eyes_index = emoticon.index(eyes_symbol)
+    mouth_index = emoticon.index(mouth_symbol)
+    # this assumes typical smileys like :)
+    if mouth_symbol in [')', ']', '}', 'D', 'd']:
+        polarity = +1
+    elif mouth_symbol in ['(', '[', '{', 'C', 'c']:
+        polarity = -1
+    elif mouth_symbol in ['p', 'P', '\\', '/', ':', '@', '|']:
+        polarity = 0
+    else:
+        raise Exception                
+    # now we reverse polarity for reversed smileys like (:
+    if eyes_index > mouth_index:
+        polarity = -polarity
+
+    return polarity
   
 def colstr(string, color, best):
     # set_trace()
