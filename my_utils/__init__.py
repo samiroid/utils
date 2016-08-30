@@ -1,7 +1,7 @@
 import re
 import twokenize
 import numpy as np
-from collections import Counter
+from collections import Counter, defaultdict
 
 
 
@@ -149,3 +149,36 @@ def kfolds(n_folds,n_elements,val_set=False,shuffle=False,random_seed=1234):
             train = [item for sublist in train for item in sublist]
             kf.append([train,test])
     return kf
+
+def shuffle_split(data, split_perc = 0.8, random_seed=1234):
+    """
+        Split the data into train and test, keeping the class proportions
+
+        data: list of (x,y) tuples
+        split_perc: percentage of training examples in train/test split
+        random_seed: ensure repeatable shuffles
+
+        returns: balanced training and test sets
+    """
+    rng=np.random.RandomState(random_seed)          
+    z = defaultdict(list)
+    #shuffle data
+    rng.shuffle(data)
+    #group examples by class label    
+    z = defaultdict(list)
+    for x,y in data: z[y].append(x)
+    
+    train = []    
+    test  = []
+    for label in z.keys():
+        #examples of each label 
+        x_label  = z[label]            
+        train += zip(x_label[:int(len(x_label)*split_perc)],
+                    [label] * int(len(x_label)*split_perc))         
+        test  += zip(x_label[ int(len(x_label)*split_perc):],
+                    [label] * int(len(x_label)*(1-split_perc)))
+    #reshuffle
+    rng.shuffle(train)
+    rng.shuffle(test)    
+
+    return train, test
