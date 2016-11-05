@@ -1,10 +1,10 @@
 import re
 import twokenize
+from tweetokenize import Tokenizer
 import numpy as np
 from collections import Counter, defaultdict
-
-
-
+twk = Tokenizer(ignorequotes=False,usernames=False,urls=False)
+from ipdb import set_trace
 # emoticon regex taken from Christopher Potts' script at http://sentiment.christopherpotts.net/tokenizing.html
 emoticon_regex = r"""(?:[<>]?[:;=8][\-o\*\']?[\)\]\(\[dDpP/\:\}\{@\|\\]|[\)\]\(\[dDpP/\:\}\{@\|\\][\-o\*\']?[:;=8][<>]?)"""
 
@@ -107,15 +107,40 @@ def word_2_idx(msgs,zero_for_padd=False):
     wrd2idx = {w:i for i,w in enumerate(words)}
     return wrd2idx
 
-def preprocess(m):
+def smart_join(msg):
+    # This is just a hack to correct the output of tokenizer
+    # 
+    n_msg = ""
+    
+    return n_msg
+
+def preprocess(m, sep_emoji=False):
     m = m.lower()    
     m = max_reps(m)
     #replace user mentions with token '@user'
     user_regex = r".?@.+?( |$)|<@mention>"    
     m = re.sub(user_regex," @user ", m, flags=re.I)
     #replace urls with token 'url'
-    m = re.sub(twokenize.url," url ",m,flags=re.I)
-    m = ' '.join(twokenize.tokenize(m)).strip()
+    m = re.sub(twokenize.url," url ", m, flags=re.I)
+    m_toks = twokenize.tokenize(m)
+    tokenized_msg = ' '.join(m_toks).strip()
+    if sep_emoji:
+        #tokenize emoji, this tokenzier however has a problem where repeated punctuation gets separated e.g. "blah blah!!!"" -> ['blah','blah','!!!'], instead of ['blah','blah','!','!','!']
+        n_toks = twk.tokenize(tokenized_msg) 
+        new_m  = ' '.join(n_toks)      
+        if len(n_toks)!=len(m_toks):
+            #check if there is any punctuation in this string
+            is_punct = map(lambda x:x in twk.punctuation, n_toks)  
+            if any(is_punct):  
+                new_m = n_toks[0]
+                for i in xrange(1,len(n_toks)):
+                    #while the same punctuation token shows up, concatenate
+                    if is_punct[i] and is_punct[i-1] and (n_toks[i] == n_toks[i-1]):
+                        new_m += n_toks[i]
+                    else:
+                        #otherwise add space
+                        new_m += " "+n_toks[i]                                                    
+        m = new_m                
     return m
 
 def kfolds(n_folds,n_elements,val_set=False,shuffle=False,random_seed=1234):        
@@ -166,8 +191,7 @@ def shuffle_split(data, split_perc = 0.8, random_seed=1234):
     rng.shuffle(data)
     #group examples by class label    
     z = defaultdict(list)
-    for x,y in data: z[y].append(x)
-    
+    for x,y in data: z[y].append(x)    
     train = []    
     test  = []
     for label in z.keys():
