@@ -1,12 +1,15 @@
+from collections import Counter, defaultdict
+import numpy as np
 import re
+import sys
 import twokenize
 from tweetokenize import Tokenizer
-import numpy as np
-from collections import Counter, defaultdict
-twk = Tokenizer(ignorequotes=False,usernames=False,urls=False)
 from ipdb import set_trace
+
 # emoticon regex taken from Christopher Potts' script at http://sentiment.christopherpotts.net/tokenizing.html
 emoticon_regex = r"""(?:[<>]?[:;=8][\-o\*\']?[\)\]\(\[dDpP/\:\}\{@\|\\]|[\)\]\(\[dDpP/\:\}\{@\|\\][\-o\*\']?[:;=8][<>]?)"""
+
+twk = Tokenizer(ignorequotes=False,usernames=False,urls=False)
 
 def count_emoticon_polarity(message):
     """
@@ -123,7 +126,7 @@ def preprocess(m, sep_emoji=False):
     #replace urls with token 'url'
     m = re.sub(twokenize.url," url ", m, flags=re.I)
     m_toks = twokenize.tokenize(m)
-    tokenized_msg = ' '.join(m_toks).strip()
+    tokenized_msg = ' '.join(m_toks)
     if sep_emoji:
         #tokenize emoji, this tokenzier however has a problem where repeated punctuation gets separated e.g. "blah blah!!!"" -> ['blah','blah','!!!'], instead of ['blah','blah','!','!','!']
         n_toks = twk.tokenize(tokenized_msg) 
@@ -141,7 +144,22 @@ def preprocess(m, sep_emoji=False):
                         #otherwise add space
                         new_m += " "+n_toks[i]                                                    
         m = new_m                
-    return m
+    return m.lstrip()
+
+def preprocess_corpus(corpus_in, corpus_out, max_sent=float('inf'), sep_emoji=False):
+
+    with open(corpus_out,"w") as fod:    
+        with open(corpus_in) as fid:
+            for i, l in enumerate(fid):
+                if i > max_sent:
+                    break
+                elif not i%1000:
+                    sys.stdout.write("\ri:%d" % i)
+                    sys.stdout.flush()
+                nl = preprocess(l.decode("utf-8"),sep_emoji)
+                # set_trace()
+                fod.write(nl.encode("utf-8")+"\n")
+    print "\nprocessed corpus@: %s " % corpus_out
 
 def kfolds(n_folds,n_elements,val_set=False,shuffle=False,random_seed=1234):        
     if val_set:
