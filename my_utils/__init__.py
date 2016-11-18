@@ -101,21 +101,27 @@ def max_reps(sentence, n=3):
                 pass
     return new_sentence
 
-def word_2_idx(msgs,zero_for_padd=False):
+# def word_2_idx(msgs,zero_for_padd=False):
+#     """
+#         Compute a dictionary index mapping words into indices
+#     """        
+#     words = set([w for m in msgs for w in m.split()])
+#     if zero_for_padd: words = ['_pad_'] + list(words)
+    
+#     return {w:i for i,w in enumerate(words)}
+     
+
+def word_2_idx(msgs, zero_for_padd=True, max_words=None):
     """
         Compute a dictionary index mapping words into indices
-    """        
-    words = set([w for m in msgs for w in m.split()])
-    if zero_for_padd: words = ['_pad_'] + list(words)               
-    wrd2idx = {w:i for i,w in enumerate(words)}
-    return wrd2idx
-
-def smart_join(msg):
-    # This is just a hack to correct the output of tokenizer
-    # 
-    n_msg = ""
-    
-    return n_msg
+    """ 
+    words = [w for m in msgs for w in m.split()]
+    if max_words is not None:                
+        top_words = sorted(Counter(words).items(), key=lambda x:x[1],reverse=True)[:max_words]                    
+        words = [w[0] for w in top_words]
+    #prepend the padding token
+    if zero_for_padd: words = ['_pad_'] + list(words)    
+    return {w:i for i,w in enumerate(set(words))}
 
 def preprocess(m, sep_emoji=False):
     m = m.lower()    
