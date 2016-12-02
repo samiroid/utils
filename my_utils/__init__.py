@@ -101,21 +101,18 @@ def max_reps(sentence, n=3):
                 pass
     return new_sentence
 
-def word_2_idx(msgs,zero_for_padd=False):
+def word_2_idx(msgs,zero_for_padd=False,max_words=None):
     """
         Compute a dictionary index mapping words into indices
-    """        
-    words = set([w for m in msgs for w in m.split()])
-    if zero_for_padd: words = ['_pad_'] + list(words)               
-    wrd2idx = {w:i for i,w in enumerate(words)}
+        msgs: list of strings
+    """
+    words = [w for m in msgs for w in m.split()]
+    #count and sort words by frequency
+    ord_words = [w[0] for w in sorted(Counter(words).items(),key=lambda x:x[1],reverse=True)]
+    if zero_for_padd: ord_words = ['_pad_'] + ord_words
+    #convert words to indices
+    wrd2idx = {w:i for i,w in enumerate(ord_words[:max_words])}
     return wrd2idx
-
-def smart_join(msg):
-    # This is just a hack to correct the output of tokenizer
-    # 
-    n_msg = ""
-    
-    return n_msg
 
 def preprocess(m, sep_emoji=False):
     m = m.lower()    
@@ -124,27 +121,26 @@ def preprocess(m, sep_emoji=False):
     user_regex = r".?@.+?( |$)|<@mention>"    
     m = re.sub(user_regex," @user ", m, flags=re.I)
     #replace urls with token 'url'
-    m = re.sub(twokenize.url," url ", m, flags=re.I)
-    m_toks = twokenize.tokenize(m)
-    tokenized_msg = ' '.join(m_toks)
+    m = re.sub(twokenize.url," url ", m, flags=re.I)        
+    tokenized_msg = ' '.join(twokenize.tokenize(m)).strip()
     if sep_emoji:
         #tokenize emoji, this tokenzier however has a problem where repeated punctuation gets separated e.g. "blah blah!!!"" -> ['blah','blah','!!!'], instead of ['blah','blah','!','!','!']
-        n_toks = twk.tokenize(tokenized_msg) 
-        new_m  = ' '.join(n_toks)      
+        m_toks = tokenized_msg.split()
+        n_toks = twk.tokenize(tokenized_msg)         
         if len(n_toks)!=len(m_toks):
             #check if there is any punctuation in this string
-            is_punct = map(lambda x:x in twk.punctuation, n_toks)  
-            if any(is_punct):  
+            has_punct = map(lambda x:x in twk.punctuation, n_toks)
+            if any(has_punct):  
                 new_m = n_toks[0]
                 for i in xrange(1,len(n_toks)):
                     #while the same punctuation token shows up, concatenate
-                    if is_punct[i] and is_punct[i-1] and (n_toks[i] == n_toks[i-1]):
+                    if has_punct[i] and has_punct[i-1] and (n_toks[i] == n_toks[i-1]):
                         new_m += n_toks[i]
                     else:
                         #otherwise add space
-                        new_m += " "+n_toks[i]                                                    
-        m = new_m                
-    return m.lstrip()
+                        new_m += " "+n_toks[i]                   
+                tokenized_msg = new_m                
+    return tokenized_msg.lstrip()
 
 def preprocess_corpus(corpus_in, corpus_out, max_sent=float('inf'), sep_emoji=False):
 
