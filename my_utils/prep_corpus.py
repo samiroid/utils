@@ -1,4 +1,4 @@
-from __init__ import preprocess_corpus, old_preprocess_corpus
+from __init__ import preprocess_corpus
 import argparse
 
 parser = argparse.ArgumentParser(description="Preprocess corpus")
