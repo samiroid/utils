@@ -120,8 +120,7 @@ def train_doc2vec(args):
 			           workers=args.workers, min_count=args.min_count, 
 			           hs=1,iter=args.epochs)		
 	d2v_reader = Doc2VecReader(args.ds,args.max_sent)
-	d2v.train(d2v_reader)
-	set_trace()
+	d2v.train(d2v_reader)	
 	d2v.save(args.out)	
 	print "Done"	
 
