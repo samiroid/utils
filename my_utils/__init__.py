@@ -5,6 +5,8 @@ import sys
 import twokenize
 from tweetokenize import Tokenizer
 from ipdb import set_trace
+import csv
+import os
 
 # emoticon regex taken from Christopher Potts' script at http://sentiment.christopherpotts.net/tokenizing.html
 emoticon_regex = r"""(?:[<>]?[:;=8][\-o\*\']?[\)\]\(\[dDpP/\:\}\{@\|\\]|[\)\]\(\[dDpP/\:\}\{@\|\\][\-o\*\']?[:;=8][<>]?)"""
@@ -187,6 +189,19 @@ def kfolds(n_folds,n_elements,val_set=False,shuffle=False,random_seed=1234):
             train = [item for sublist in train for item in sublist]
             kf.append([train,test])
     return kf
+
+def build_folds(msg_ids, n_folds, folder_path):
+    if not os.path.isdir(folder_path):
+        os.mkdir(folder_path)
+    kf = kfolds(n_folds, len(msg_ids),val_set=True,shuffle=True)
+    for i, fold in enumerate(kf):
+        fold_data = {"train": [ int(msg_ids[x]) for x in fold[0] ], 
+                     "test" : [ int(msg_ids[x]) for x in fold[1] ],
+                     "val"  : [ int(msg_ids[x]) for x in fold[2] ] }
+        with open(folder_path + '/fold_%d.csv' % i, 'wb') as f: 
+            w = csv.DictWriter(f, fold_data.keys())
+            w.writeheader()
+            w.writerow(fold_data)
 
 def shuffle_split(data, split_perc = 0.8, random_seed=1234):
     """
