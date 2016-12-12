@@ -1,12 +1,12 @@
 from collections import Counter, defaultdict
+import csv
+from ipdb import set_trace
 import numpy as np
+import os
 import re
 import sys
 import twokenize
 from tweetokenize import Tokenizer
-from ipdb import set_trace
-import csv
-import os
 
 # emoticon regex taken from Christopher Potts' script at http://sentiment.christopherpotts.net/tokenizing.html
 emoticon_regex = r"""(?:[<>]?[:;=8][\-o\*\']?[\)\]\(\[dDpP/\:\}\{@\|\\]|[\)\]\(\[dDpP/\:\}\{@\|\\][\-o\*\']?[:;=8][<>]?)"""
@@ -156,7 +156,7 @@ def preprocess_corpus(corpus_in, corpus_out, max_sent=float('inf'), sep_emoji=Fa
                 nl = preprocess(l.decode("utf-8"),sep_emoji)
                 # set_trace()
                 fod.write(nl.encode("utf-8")+"\n")
-    print "\nprocessed corpus@: %s " % corpus_out
+    print "\nprocessed corpus @ %s " % corpus_out
 
 def kfolds(n_folds,n_elements,val_set=False,shuffle=False,random_seed=1234):        
     if val_set:
@@ -192,7 +192,7 @@ def kfolds(n_folds,n_elements,val_set=False,shuffle=False,random_seed=1234):
 
 def build_folds(msg_ids, n_folds, folder_path):
     if not os.path.isdir(folder_path):
-        os.mkdir(folder_path)
+        os.makedirs(folder_path)
     kf = kfolds(n_folds, len(msg_ids),val_set=True,shuffle=True)
     for i, fold in enumerate(kf):
         fold_data = {"train": [ int(msg_ids[x]) for x in fold[0] ], 
@@ -234,3 +234,27 @@ def shuffle_split(data, split_perc = 0.8, random_seed=1234):
     rng.shuffle(test)    
 
     return train, test
+
+def translate_corpus(api_key, translation_pair,
+                     path_in, path_out, max_sent=float('inf')):
+    from yandex_translate import YandexTranslate
+    translator = YandexTranslate(api_key)
+    fails = []
+    with open(path_out,"w") as fod:    
+        with open(path_in) as fid:
+            for i, l in enumerate(fid):
+                if i > max_sent:
+                    break
+                elif not i%1000:
+                    sys.stdout.write("\r> %d" % i)
+                    sys.stdout.flush()        
+                try:        
+                    tr = translator.translate(l,translation_pair)['text'][0].strip("\n")
+                except: 
+                    fails.append(l)
+                fod.write(tr.encode("utf-8")+"\n")
+    print "\ntranslated corpus @ %s " % path_out
+    print "fails"
+    print fails
+
+
