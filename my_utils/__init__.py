@@ -7,6 +7,7 @@ import re
 import sys
 import twokenize
 from tweetokenize import Tokenizer
+from yandex_translate import YandexTranslate, YandexTranslateException
 
 # emoticon regex taken from Christopher Potts' script at http://sentiment.christopherpotts.net/tokenizing.html
 emoticon_regex = r"""(?:[<>]?[:;=8][\-o\*\']?[\)\]\(\[dDpP/\:\}\{@\|\\]|[\)\]\(\[dDpP/\:\}\{@\|\\][\-o\*\']?[:;=8][<>]?)"""
@@ -236,25 +237,62 @@ def shuffle_split(data, split_perc = 0.8, random_seed=1234):
     return train, test
 
 def translate_corpus(api_key, translation_pair,
-                     path_in, path_out, max_sent=float('inf')):
-    from yandex_translate import YandexTranslate
+                     path_in, path_out, resume_from=0,
+                     max_sent=float('inf')):    
+    """
+        Translate a corpus using Yandex API
+        api_key: API key
+        translation_pair: FROM_LANGUAGE-TO_LANGUAGE, e.g.: "en-es"
+        path_in: corpus to be translated
+        path_out: path where the translation will be saved
+        resume_from: number of the line on the input corpus from which to start translating;
+                     this allows for translations to be resumed in case of failure; 
+                     NOTE: if this is set the path_out will be open to append
+    """
     translator = YandexTranslate(api_key)
     fails = []
-    with open(path_out,"w") as fod:    
+    if resume_from > 0:
+        mode = "a"        
+    else:
+        mode = "w"
+    print "open in mode ", mode
+    with open(path_out, mode) as fod:    
         with open(path_in) as fid:
+            if resume_from > 0:
+                print "skipping the first %d lines" % resume_from                
+                #skip the first lines
+                for _ in xrange(resume_from): next(fid)
             for i, l in enumerate(fid):
                 if i > max_sent:
                     break
-                elif not i%1000:
+                elif not i%100:
                     sys.stdout.write("\r> %d" % i)
-                    sys.stdout.flush()        
-                try:        
-                    tr = translator.translate(l,translation_pair)['text'][0].strip("\n")
-                except: 
-                    fails.append(l)
-                fod.write(tr.encode("utf-8")+"\n")
+                    sys.stdout.flush() 
+                #request translation
+                try:
+                    tr = translator.translate(l,translation_pair)
+                    #grab the tex
+                    txt = tr['text'][0].encode("utf-8")                                        
+                except YandexTranslateException as e:                     
+                    #check response codes
+                    if e.message == 'ERR_KEY_INVALID':
+                        print "\n[ABORTED: Invalid API key]\n"
+                        break
+                    elif e.message == 'ERR_KEY_BLOCKED':
+                        print "\n[ABORTED: Blocked API key]\n"
+                        break
+                    elif e.message == 'ERR_DAILY_CHAR_LIMIT_EXCEEDED':
+                        print "\n[ABORTED: Exceeded daily limit]\n"
+                        break
+                    elif e.message == 'ERR_LANG_NOT_SUPPORTED':
+                        print "\n[ABORTED: Translation direction not supported]\n"
+                        break
+                    elif e.message == 'ERR_UNPROCESSABLE_TEXT' or tr['code'] == 'ERR_TEXT_TOO_LONG':
+                        #413 - exceeded maximum text size
+                        #422 - text cannot be translated
+                        txt = "FAIL: ", e.message
+                        fails.append(l)                                                      
+                fod.write(txt)
     print "\ntranslated corpus @ %s " % path_out
-    print "fails"
-    print fails
-
-
+    print "fails", fails
+    
